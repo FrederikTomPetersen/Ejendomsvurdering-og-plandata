@@ -1,7 +1,15 @@
 
 
-setwd("C:/Users/Frederik/Documents/scrape af boligdata/")
-load("~/Scrape af boligdata/Århus.Rda")
+#local
+#setwd("C:/Users/Frederik/Documents/scrape af boligdata/")
+#load("~/Ãrhus.Rda")
+
+
+#ERST
+setwd("C:/Users/ftp/OneDrive - Erhvervsstyrelsen/Github/Ejendomsvurdering-og-plandata/Ejendomsvurdering-og-plandata/")
+load("C:/Users/ftp/OneDrive - Erhvervsstyrelsen/Github/Ejendomsvurdering-og-plandata/Ejendomsvurdering-og-plandata/Århus.Rda")
+#home
+
 set.seed(42)
 
 
@@ -13,44 +21,25 @@ set.seed(42)
 
   #Indhentning af pakker og afhængigheder
   
-Packages <- c("sf", 
-              "RCurl",
-              "rwfs",
-              "data.table",
-              "devtools",
-              "XML",
-              "gdalUtils",
-              "rgdal",
-              "tmap",
-              "sp",
-              "raster",
-              "dplyr",
-              "rvest",
-              "stringr",
-              "ggplot2",
-              "tidyr",
-              "viridis",
-              "broom",
-              "maptools",
-              "caret",
-              "dplyr",
-              "plyr",
-              "scales",
-              "rgdal",
-              "raster", 
-              "dplyr",
-              "geosphere", 
-              "tmap", 
-              "tmaptools", 
-              "rgeos",
-              "randomForest",
-              "ranger",
-              "xgboost",
-              "ggmap",
-              "pROC",
-              "geosphere",
-              "maptools",
-              "rgeos",
+Packages <- c("sf",               "RCurl",
+              "rwfs",              "data.table",
+              "devtools",              "XML",
+              "gdalUtils",              "rgdal",
+              "tmap",              "sp",
+              "raster",              "dplyr",
+              "rvest",              "stringr",
+              "ggplot2",              "tidyr",
+              "viridis",              "broom",
+              "maptools",              "caret",
+              "dplyr",              "plyr",
+              "scales",              "rgdal",
+              "raster",               "dplyr",
+              "geosphere",               "tmap", 
+              "tmaptools",               "rgeos",
+              "randomForest",              "ranger",
+              "xgboost",              "ggmap",
+              "pROC",              "geosphere",
+              "maptools",              "rgeos",
               "ggmap")
 lapply(Packages, library, character.only = TRUE)
 
@@ -58,18 +47,18 @@ lapply(Packages, library, character.only = TRUE)
 
   #####################################################
   #                                                   #
-  #           Download af Lokalplan i Århus           #
+  #           Download af Lokalplan i Ãrhus          #
   #                                                   #
   #####################################################
 
 
 
-# Kald af defination af scraper.funtions og selve udtrækket er udkommenteret i nedenstående. 
-# Afkommenteres, hvis de skal indgår i den samlede analyse.
-# Alternativt kan man nøjes med data loaded i linje 4, der giver samme resultat
+# Kald af defination af scraper.funtions og selve udtrÃ¦kket er udkommenteret i nedenstÃ¥ende. 
+# Afkommenteres, hvis de skal indgÃ¥r i den samlede analyse.
+# Alternativt kan man nÃ¸jes med data loaded i linje 4, der giver samme resultat
 
-#source("Functions_Århus.r")
-#source(Scraper_Århus.r)
+#source("Functions_Ãrhus.r")
+#source(Scraper_Ãrhus.r)
 
   
   #####################################################
@@ -80,18 +69,18 @@ lapply(Packages, library, character.only = TRUE)
   
   
   # For at sikre samme typer af koordinater i LP og Boligsalg joiner jeg i det oprindelige dataset,
-  #for at tildele de ETRS89 koordinater, der var blevet fjernet i Urups cleaner() funktion, frem for at pille udødigt i han funktioner
+  #for at tildele de ETRS89 koordinater, der var blevet fjernet i Urups cleaner() funktion, frem for at pille udÃ¸digt i han funktioner
 
 
 add <- readr::read_csv("http://dawa.aws.dk/adresser?format=csv&kommunekode=0751")
 add2 <- add %>% 
-  select('wgs84koordinat_bredde', 'wgs84koordinat_længde', 'etrs89koordinat_øst','etrs89koordinat_nord') %>% 
+  select('wgs84koordinat_bredde', 'wgs84koordinat_lÃ¦ngde', 'etrs89koordinat_øst','etrs89koordinat_nord') %>% 
   dplyr::distinct(wgs84koordinat_bredde, wgs84koordinat_længde, .keep_all=TRUE)
 rm(add)
-# med ETRS89-coor i add2 datasættet kan det nu tilføres Århus-boligsalg datasættet
+# med ETRS89-coor i add2 datasættet kan det nu tilfÃ¸res Ãrhus-boligsalg datasættet
 
-BoligSalg <- Århus %>% 
-  left_join(add2, by =  c('lat'='wgs84koordinat_bredde', 'lon'='wgs84koordinat_længde'))
+BoligSalg <- Ãrhus %>% 
+  left_join(add2, by =  c('lat'='wgs84koordinat_bredde', 'lon'='wgs84koordinat_lÃ¦ngde'))
 write.table(BoligSalg, file = "Boligsalg.csv", sep=",")
 class(BoligSalg)
 rm(add2)
@@ -104,25 +93,25 @@ rm(add2)
 
     #####################################################
     #                                                   #
-    #      Download og join af Lokalplan i Århus        #
+    #      Download og join af Lokalplan i Ãrhus        #
     #                                                   #
     #####################################################
 
 #OBS en del parametre har jeg defineret i url'en for at forsimple OGR hentningen.
-ÅRHUS_DSN <-"http://geoservice.plansystem.dk/wfs?service=WFS&request=GetFeature&version=1.0.0&typeNames=theme_pdk_lokalplan_vedtaget_v&CQL_FILTER=komnr=751"
+ÃRHUS_DSN <-"http://geoservice.plansystem.dk/wfs?service=WFS&request=GetFeature&version=1.0.0&typeNames=theme_pdk_lokalplan_vedtaget_v&CQL_FILTER=komnr=751"
 
-ogrinfo(ÅRHUS_DSN, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
+ogrinfo(ÃRHUS_DSN, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
 
-ogr2ogr(ÅRHUS_DSN, "lokalplan_ÅRHUS.shp", "theme_pdk_lokalplan_vedtaget_v")  # hentning af data fra WFS
+ogr2ogr(ÃRHUS_DSN, "lokalplan_ÃRHUS.shp", "theme_pdk_lokalplan_vedtaget_v")  # hentning af data fra WFS
 
 
-# Før jeg kan joine bliver jeg nødt til at fjerne observationer, hvor at ETRS joined indholder NA
-# Går fra 16320 obs til 15600 obs
+# FÃ¸r jeg kan joine bliver jeg nÃ¸dt til at fjerne observationer, hvor at ETRS joined indholder NA
+# GÃ¥r fra 16320 obs til 15600 obs
 
 BoligSalg <- tidyr::drop_na(BoligSalg, etrs89koordinat_øst, etrs89koordinat_nord)
 
 
-#Derefter tildeles Boligsalg observationerne indholdet fra LP såfremt at de ligger inden for en lokalplan
+#Derefter tildeles Boligsalg observationerne indholdet fra LP sÃ¥fremt at de ligger inden for en lokalplan
 
 sf::read_sf("lokalplan_ÅRHUS.shp", crs = 25832) %>% 
   sf::st_join( x =
@@ -136,8 +125,8 @@ BoligmedLP <- sf::read_sf("bolig3.shp", crs = 25832)
 BoligmedLP$Lokalplan <- ifelse(BoligmedLP$planid>0, 1, 0)
 BoligmedLP$Lokalplan  <- BoligmedLP$Lokalplan %>% replace_na(0)
 
-#Da der i visse områder er 2 lokalplaner, er der blevet oprettet en række dubletter. Disse vil blive fjernet med distinct funktionen senere, 
-#når jeg har lavet en oprydning i data.
+#Da der i visse omrÃ¥der er 2 lokalplaner, er der blevet oprettet en rÃ¦kke dubletter. Disse vil blive fjernet med distinct funktionen senere, 
+#nÃ¥r jeg har lavet en oprydning i data.
 
 
 
@@ -149,7 +138,7 @@ BoligmedLP$Lokalplan  <- BoligmedLP$Lokalplan %>% replace_na(0)
 
   #####################################################
   #                                                   #
-  #      Afstandsanalyse til rekreative områder       #
+  #      Afstandsanalyse til rekreative områder     #
   #                                                   #
   #####################################################
 
@@ -163,7 +152,7 @@ Rekreativeområder <- sf::read_sf("Kommuneplanramme.shp", crs = 25832)  %>%
   filter(anvgen == 51) #JF datamodellen
 
 
-#Afstand fra boligpunkt til nærmeste rekreative område 
+#Afstand fra boligpunkt til nÃ¦rmeste rekreative omrÃ¥de 
 BoligmedLP$afstandR <- st_distance(BoligmedLP,Rekreativeområder)[,1]
 
 
@@ -180,7 +169,7 @@ BoligmedLP$afstandR <- st_distance(BoligmedLP,Rekreativeområder)[,1]
 #####################################################
 
 
-#definerer tema og konkode i url for at reducere downloadet datamængde
+#definerer tema og konkode i url for at reducere downloadet datamÃ¦ngde
 
 slot <-  "http://www.kulturarv.dk/geoserver/wfs?service=WFS&version=1.0.0&request=GetCapabilities"
 ogrinfo(slot, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
@@ -213,7 +202,7 @@ Bolig_med_sag$Bevaringssag  <- Bolig_med_sag$Bevaringssag %>% replace_na(0)
 
 saveRDS(Bolig_med_sag, "data.rds")
 Data <- readRDS("Data.rds")
-rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreativeområder, Århus,slot, DSN_Kommuneplan_Ramme_751, ÅÅRHUS_DSN )
+rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreativeomrøder, Ãrhus,slot, DSN_Kommuneplan_Ramme_751, ÅRHUS_DSN )
 
 
 
@@ -228,7 +217,7 @@ saveRDS(Data_fin, "data.rds")
 
 #####################################################
 #                                                   #
-# Indhentning af middel handelsværdi i nærområde    #
+# Indhentning af middel handelsvÃ¦rdi i nærområde   #
 #                                                   #
 #####################################################
 
@@ -317,7 +306,7 @@ cor(Data_fin_1$buysum, Data_fin_1$lon)          # 0,105
 cor(Data_fin_1$buysum, Data_fin_1$afstandR)     # -0,0023
 cor(Data_fin_1$buysum, Data_fin_1$Bevaringssag) # 0,024
 cor(Data_fin_1$buysum, Data_fin_1$Lokalplan)    #0,11
-cor(Data_fin_1$buysum, Data_fin_1$Lokalområde_buysum)
+cor(Data_fin_1$buysum, Data_fin_1$Lokalomrøde_buysum)
 
 
 
@@ -328,17 +317,17 @@ cor(Data_fin_1$buysum, Data_fin_1$Lokalområde_buysum)
 
 
 ##Kort 1
-ÅrhusBase <- get_googlemap(center = c(lon = 10.19, lat = 56.15), maptype = "terrain", source = "google", zoom = 12, color = "bw")
+ÃrhusBase <- get_googlemap(center = c(lon = 10.19, lat = 56.15), maptype = "terrain", source = "google", zoom = 12, color = "bw")
 
 map1 <-  ggmap(ÅrhusBase, base_layer=ggplot(aes(x=lon,y=lat), data=Data_fin_1), extent = "normal", maprange=TRUE) +
   scale_fill_discrete(name = "Title") +  
   geom_point(data = Visueldata2, aes( x = lon, y = lat, color = buysum/1000000), size = 1, alpha = 0.1) +
   coord_map(projection="mercator", 
-            xlim=c(attr(ÅrhusBase, "bb")$ll.lon, attr(ÅrhusBase, "bb")$ur.lon),
-            ylim=c(attr(ÅrhusBase, "bb")$ll.lat, attr(ÅrhusBase, "bb")$ur.lat)) +
+            xlim=c(attr(ÃrhusBase, "bb")$ll.lon, attr(ÃrhusBase, "bb")$ur.lon),
+            ylim=c(attr(ÃrhusBase, "bb")$ll.lat, attr(ÃrhusBase, "bb")$ur.lat)) +
   guides(color = guide_colorbar(barwidth = 1,
                                 barheight = 10,
-                                title = "Købssum i millioner",
+                                title = "KÃ¸bssum i millioner",
                                 title.position = "top"))
 map1
 ggsave("Kort1.png", map1)
@@ -347,7 +336,7 @@ ggsave("Kort1.png", map1)
   
   
 #Jitterplot  
-prikpåområde <- ggplot(data = Visueldata2) +
+prikpåomrÃøde <- ggplot(data = Visueldata2) +
   geom_jitter(aes(x = pstnrnv, color = buysum/1000000, y = buysum/1000000), alpha = 0.1) + 
   scale_color_viridis(option = "viridis") +
   xlab("") +
@@ -374,18 +363,18 @@ ggsave("prik.png", prikpåområde)
 
 ###############################################################################
 #                                                                             #
-#       Fjernelse af outliers og kørsel af modeller                           #
+#       Fjernelse af outliers og kÃ¸rsel af modeller                           #
 #                                                                             #
 ###############################################################################
 
 ###############################################################################
 
 
-# i dette har jeg valgt ikke at inddrage de outliers, der er i datasættet. 
-#indledningsvidt har jeg haft kørt mine modeller med dette data, men grundet de teorstiske overvejelser omkring forholdet mellem 
+# i dette har jeg valgt ikke at inddrage de outliers, der er i datasÃ¦ttet. 
+#indledningsvidt har jeg haft kÃ¸rt mine modeller med dette data, men grundet de teorstiske overvejelser omkring forholdet mellem 
 #luksusboliger og almindelige boliger har jeg fjernet disse igen. 
 Data_fin_1  <- Data_fin_1[myvars] %>% 
-  filter(Data_fin_1$buysum<8000000) #210 færre observationer
+  filter(Data_fin_1$buysum<8000000) #210 fÃ¦rre observationer
 
 
 
@@ -411,12 +400,12 @@ rmse <- function(error)
 
 #####################################################
 #                                                   #
-#              Prædiktion + estiamation             #
+#              PrÃ¦diktion + estiamation             #
 #                                                   #
 #####################################################
 
 
-#Gennem indexet, der er styret af seed42 laver jeg træning og test settet
+#Gennem indexet, der er styret af seed42 laver jeg trÃ¦ning og test settet
 
 Index <-  sample(nrow(Data_fin_1), nrow(Data_fin_1)*0.75)
 Bolig_train <- Data_fin_1[Index, ]
@@ -429,7 +418,7 @@ formular2 <- buysum ~ m2 + date +n_rooms + buld_yr + height + afstandR + Bevarin
 formular2 <- buysum ~ m2 + date +n_rooms + buld_yr + height + afstandR + Bevaringssag + Lokalplan + Lokalområde_buysum + lat + lon
 
 
-#oprettelse af fit control, der sikre en looping i træningsdataet, der gør modelleringen endnu stærkere. 
+#oprettelse af fit control, der sikre en looping i trÃ¦ningsdataet, der gÃ¸r modelleringen endnu stÃ¦rkere. 
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 
 
@@ -437,7 +426,7 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 
 
 ##########################################
-#              Lineærmodel 1+ 2+3        #
+#              LineÃ¦rmodel 1+ 2+3        #
 ##########################################
 
 #model 1
@@ -575,13 +564,13 @@ rsq # 0.75 <- jeg forklarer omrking 75% af variansen.
 
 
 par(mfrow = c(1, 2))
-boxplot(Bolig_test$resid_xgbLin3/1000000, ylab = "Residual (millioner)", ylim=c(-1.5,1.5)) #Viser at der er en række outliers der gætter meget forkert. Måske man skulle overveje en anden model til boliger, der koster mange cash
+boxplot(Bolig_test$resid_xgbLin3/1000000, ylab = "Residual (millioner)", ylim=c(-1.5,1.5)) #Viser at der er en rÃ¦kke outliers der gÃ¦tter meget forkert. MÃ¥ske man skulle overveje en anden model til boliger, der koster mange cash
 boxplot(Bolig_test$RES_lin3/1000000,  ylim=c(-1.5,1.5))
 
 par(mfrow = c(2, 2))
 hist(Bolig_test$resid_xgbLin3/1000000, 
      main= "XGB-model 3", 
-     xlab="fejlprædiktion i millioner kr", 
+     xlab="fejlprÃ¦diktion i millioner kr", 
      border="red", 
      col="darkred",
      xlim=c(-5,5),
@@ -589,15 +578,15 @@ hist(Bolig_test$resid_xgbLin3/1000000,
      breaks=400,
      prob=TRUE)
 hist(Bolig_test$RES_lin3/1000000, 
-     main= "Lineær model 3", 
-     xlab="fejlprædiktion i millioner kr", 
+     main= "LineÃ¦r model 3", 
+     xlab="fejlprÃ¦diktion i millioner kr", 
      border="blue", 
      col="darkblue",
      xlim=c(-5,5),
      las=0.1, 
      breaks=400,
      prob=TRUE)
-boxplot(Bolig_test$resid_xgbLin3/1000000, ylab = "Residual (millioner)", ylim=c(-1.5,1.5)) #Viser at der er en række outliers der gætter meget forkert. Måske man skulle overveje en anden model til boliger, der koster mange cash
+boxplot(Bolig_test$resid_xgbLin3/1000000, ylab = "Residual (millioner)", ylim=c(-1.5,1.5)) #Viser at der er en rÃ¦kke outliers der gÃ¦tter meget forkert. MÃ¥ske man skulle overveje en anden model til boliger, der koster mange cash
 boxplot(Bolig_test$RES_lin3/1000000,  ylim=c(-1.5,1.5))
 
 
