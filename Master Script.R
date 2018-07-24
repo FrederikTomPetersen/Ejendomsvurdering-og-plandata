@@ -64,7 +64,7 @@ lapply(Packages, library, character.only = TRUE)
 
   #####################################################
   #                                                   #
-  #           Download af Lokalplan i Århus          #
+  #           Download af Lokalplan i Århus           #
   #                                                   #
   #####################################################
 
