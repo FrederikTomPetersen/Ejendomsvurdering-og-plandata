@@ -1,5 +1,18 @@
 
 
+
+# installing/loading the package:
+#if(!require(installr)) {
+#  install.packages("installr"); require(installr)} #load / install+load installr
+# using the package:
+#updateR() # this will start the updating process of your R installation.  It will check for newer versions, and if one is available, will guide you through the decisions you'd need to make.
+
+
+
+
+
+
+
 #local
 #setwd("C:/Users/Frederik/Documents/scrape af boligdata/")
 
@@ -39,7 +52,12 @@ Packages <- c("sf",               "RCurl",
               "xgboost",              "ggmap",
               "pROC",              "geosphere",
               "maptools",              "rgeos",
-              "ggmap")
+              "ggmap",                "readr")
+
+if(!require(Packages)){
+  install.packages(Packages)
+}
+
 lapply(Packages, library, character.only = TRUE)
 
 
@@ -73,18 +91,20 @@ source("Functions_Århus.r")
 
 add <- readr::read_csv("http://dawa.aws.dk/adresser?format=csv&kommunekode=0751")
 add2 <- add %>% 
-  select('wgs84koordinat_bredde', 'wgs84koordinat_lÅ¦ngde', 'etrs89koordinat_øst','etrs89koordinat_nord') %>% 
+  select('wgs84koordinat_bredde', 'wgs84koordinat_længde', 'etrs89koordinat_øst','etrs89koordinat_nord') %>% 
   dplyr::distinct(wgs84koordinat_bredde, wgs84koordinat_længde, .keep_all=TRUE)
 rm(add)
 # med ETRS89-coor i add2 datasættet kan det nu tilfÅ¸res Århus-boligsalg datasættet
 
 BoligSalg <- Århus %>% 
-  left_join(add2, by =  c('lat'='wgs84koordinat_bredde', 'lon'='wgs84koordinat_lÅ¦ngde'))
+  left_join(add2, by =  c('lat'='wgs84koordinat_bredde', 'lon'='wgs84koordinat_længde'))
 write.table(BoligSalg, file = "Boligsalg.csv", sep=",")
 class(BoligSalg)
 rm(add2)
 
-
+#Oprydning 1
+fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor", "etrs89koordinat_øst", "etrs89koordinat_nord")
+BoligSalg <- BoligSalg[fields]
 
 
 
@@ -97,35 +117,72 @@ rm(add2)
     #####################################################
 
 #OBS en del parametre har jeg defineret i url'en for at forsimple OGR hentningen.
-ÅRHUS_DSN <-"http://geoservice.plansystem.dk/wfs?service=WFS&request=GetFeature&version=1.0.0&typeNames=theme_pdk_lokalplan_vedtaget_v&CQL_FILTER=komnr=751"
-
+ÅRHUS_DSN <-"http://geoserver.plandata.dk/geoserver/wfs?servicename=WFS&request=GetFeature&Version=1.0.0&typeNames=theme_pdk_lokalplan_vedtaget_v&CQL_FILTER=komnr=751"
 ogrinfo(ÅRHUS_DSN, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
-
 ogr2ogr(ÅRHUS_DSN, "lokalplan_ÅRHUS.shp", "theme_pdk_lokalplan_vedtaget_v")  # hentning af data fra WFS
 
 
-# FÅ¸r jeg kan joine bliver jeg nÅ¸dt til at fjerne observationer, hvor at ETRS joined indholder NA
-# GÅ¥r fra 16320 obs til 15600 obs
-
-BoligSalg <- tidyr::drop_na(BoligSalg, etrs89koordinat_øst, etrs89koordinat_nord)
 
 
-#Derefter tildeles Boligsalg observationerne indholdet fra LP sÅ¥fremt at de ligger inden for en lokalplan
+# Før jeg kan joine bliver jeg nÅ¸dt til at fjerne observationer, hvor at ETRS joined indholder NA
+# Går fra 16320 obs til 15600 obs
+#BoligSalg <- tidyr::drop_na(BoligSalg, etrs89koordinat_øst, etrs89koordinat_nord)
 
+BoligSalg <- BoligSalg[!is.na(BoligSalg$etrs89koordinat_øst),]
+BoligSalg <- BoligSalg[!is.na(BoligSalg$etrs89koordinat_nord),]
+
+
+#Derefter tildeles Boligsalg observationerne indholdet fra LP såfremt at de ligger inden for en lokalplan
 sf::read_sf("lokalplan_ÅRHUS.shp", crs = 25832) %>% 
   sf::st_join( x =
                  sf::st_as_sf(BoligSalg, coords = c("etrs89koordinat_øst", "etrs89koordinat_nord"), 
                               crs = 25832), join = st_within, left = TRUE) %>% 
   sf::write_sf("bolig3.shp") #OBS skriver lokalfil
+BoligSalg <- sf::read_sf("bolig3.shp", crs = 25832)
 
-BoligmedLP <- sf::read_sf("bolig3.shp", crs = 25832)
+#
+#   Der er et problem med, at der nogle steder optræder mere end én lokalplan.Det betyder at vi får flere observationer end der er i det oprindelige datasæt.
+#
+#
 
 #her omdanner jeg informationerne til en dikotom variable.
-BoligmedLP$Lokalplan <- ifelse(BoligmedLP$planid>0, 1, 0)
-BoligmedLP$Lokalplan  <- BoligmedLP$Lokalplan %>% replace_na(0)
+BoligSalg$Lokalplan <- ifelse(BoligSalg$planid>0, 1, 0)
+BoligSalg$Lokalplan  <- BoligSalg$Lokalplan %>% replace_na(0)
 
-#Da der i visse omrÅ¥der er 2 lokalplaner, er der blevet oprettet en rÅ¦kke dubletter. Disse vil blive fjernet med distinct funktionen senere, 
-#nÅ¥r jeg har lavet en oprydning i data.
+
+
+
+#Oplysninger om anvendelse 
+#Kristian
+
+BoligSalg$LP_ANV <- 0
+
+if(BoligSalg$anvgen == 11){
+  BoligSalg$LP_ANV <- 1
+} else if(BoligSalg$anvgen == 21) {
+  BoligSalg$LP_ANV <- 2
+} else if(BoligSalg$anvgen == 31) {
+  BoligSalg$LP_ANV <- 3
+} else if(BoligSalg$anvgen == 41) {
+  BoligSalg$LP_ANV <- 4
+} else if(BoligSalg$anvgen == 51) {
+  BoligSalg$LP_ANV <- 5
+} else if(BoligSalg$anvgen == 61) {
+  BoligSalg$LP_ANV <- 6
+} else if(BoligSalg$anvgen == 71) {
+  BoligSalg$LP_ANV <- 7
+} else if(BoligSalg$anvgen == 81) {
+  BoligSalg$LP_ANV <- 8
+} else {
+  BoligSalg$LP_ANV <- 0
+}
+
+fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "LP_ANV")
+BoligSalg <- BoligSalg[fields]
+
+
+#Da der i visse områder er 2 lokalplaner, er der blevet oprettet en række dubletter. 
+#Overvej om disse kan fjernes med en distinct() funktionen senere, når der er ryddet ud i data
 
 
 
@@ -137,12 +194,12 @@ BoligmedLP$Lokalplan  <- BoligmedLP$Lokalplan %>% replace_na(0)
 
   #####################################################
   #                                                   #
-  #      Afstandsanalyse til rekreative områder     #
+  #      Afstandsanalyse til rekreative områder       #
   #                                                   #
   #####################################################
 
 #Download af data
-DSN_Kommuneplan_Ramme_751 <- "http://geoservice.plansystem.dk/wfs?service=WFS&request=GetFeature&version=1.0.0&typeNames=theme_pdk_kommuneplanramme_vedtaget_v&CQL_FILTER=komnr=751"
+DSN_Kommuneplan_Ramme_751 <- "http://geoserver.plandata.dk/geoserver/wfs?servicename=WFS&request=GetFeature&Version=1.0.0&typeNames=theme_pdk_kommuneplanramme_vedtaget_v&CQL_FILTER=komnr=751"
 ogrinfo(DSN_Kommuneplan_Ramme_751, so=TRUE)
 ogr2ogr(DSN_Kommuneplan_Ramme_751, "Kommuneplanramme.shp", "theme_pdk_kommuneplanramme_vedtaget_v")
 
@@ -151,8 +208,8 @@ Rekreativeområder <- sf::read_sf("Kommuneplanramme.shp", crs = 25832)  %>%
   filter(anvgen == 51) #JF datamodellen
 
 
-#Afstand fra boligpunkt til nÅ¦rmeste rekreative omrÅ¥de 
-BoligmedLP$afstandR <- st_distance(BoligmedLP,Rekreativeområder)[,1]
+#Afstand fra boligpunkt til nÅ¦rmeste rekreative område 
+BoligSalg$afstandR <- st_distance(BoligSalg,Rekreativeområder)[,1]
 
 
 
@@ -168,7 +225,7 @@ BoligmedLP$afstandR <- st_distance(BoligmedLP,Rekreativeområder)[,1]
 #####################################################
 
 
-#definerer tema og konkode i url for at reducere downloadet datamÅ¦ngde
+#definerer tema og komkode i url for at reducere downloadet datamÅ¦ngde
 
 slot <-  "http://www.kulturarv.dk/geoserver/wfs?service=WFS&version=1.0.0&request=GetCapabilities"
 ogrinfo(slot, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
@@ -179,11 +236,51 @@ Bevaringssag <- sf::read_sf("Bevaringssag.shp", crs = 25832)  %>%
 
 
 #spatialjoin --> omtrent 4000 boliger for en bevaringssag tilknyttet 
-Bolig_med_sag <- st_join(BoligmedLP, Bevaringssag, join = st_equals, left = TRUE)
+BoligSalg <- st_join(BoligSalg, Bevaringssag, join = st_equals, left = TRUE)
 
 # omdanner oplysningerne til en dikotom variable
-Bolig_med_sag$Bevaringssag <- ifelse(Bolig_med_sag$bygningsid>0, 1, 0)
-Bolig_med_sag$Bevaringssag  <- Bolig_med_sag$Bevaringssag %>% replace_na(0)
+BoligSalg$Bevaringssag <- ifelse(BoligSalg$bygningsid>0, 1, 0)
+BoligSalg$Bevaringssag  <- BoligSalg$Bevaringssag %>% replace_na(0)
+
+
+
+fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "LP_ANV", "afstandR", "Bevaringssag")
+BoligSalg <- BoligSalg[fields]
+
+
+
+#####################################################
+#                                                   #
+#                Lokalplandelområder                #
+#                                                   #
+#####################################################
+
+#OBS en del parametre har jeg defineret i url'en for at forsimple OGR hentningen.
+ÅRHUS_DSN <-"http://geoserver.plandata.dk/geoserver/wfs?servicename=WFS&request=GetFeature&Version=1.0.0&typeNames=theme_pdk_lokalplandelomraade_vedtaget_v&CQL_FILTER=komnr=751"
+ogrinfo(ÅRHUS_DSN, so=TRUE) # finder hvilke temaer WFS'en indeholde - kun 1 grundet URL specifikantion
+ogr2ogr(ÅRHUS_DSN, "lokalplan_del_ÅRHUS.shp", "theme_pdk_lokalplandelomraade_vedtaget_v")  # hentning af data fra WFS
+
+
+
+#Derefter tildeles Boligsalg observationerne indholdet fra LP såfremt at de ligger inden for en lokalplan
+sf::read_sf("lokalplan_del_ÅRHUS.shp", crs = 25832) %>% 
+  sf::st_join( x =
+                 sf::st_as_sf(BoligSalg, coords = c("etrs89koordinat_øst", "etrs89koordinat_nord"), 
+                              crs = 25832), join = st_within, left = TRUE) %>% 
+  sf::write_sf("bolig4.shp") #OBS skriver lokalfil
+BoligSalg <- sf::read_sf("bolig4.shp", crs = 25832)
+
+BoligSalg$DelLokalplan <- ifelse(BoligSalg$planid>0, 1, 0)
+BoligSalg$DelLokalplan  <- BoligSalg$planid %>% replace_na(0)
+
+fields <-  c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "LP_ANV", "afstndR", "Bvrngss","DelLokalplan")
+BoligSalg <- BoligSalg[fields]
+
+
+
+
+
+
 
 
 
@@ -199,15 +296,15 @@ Bolig_med_sag$Bevaringssag  <- Bolig_med_sag$Bevaringssag %>% replace_na(0)
 #####################################################
 
 
-saveRDS(Bolig_med_sag, "data.rds")
+saveRDS(BoligSalg, "data.rds")
 Data <- readRDS("Data.rds")
 rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreativeomrøder, Århus,slot, DSN_Kommuneplan_Ramme_751, ÅRHUS_DSN )
 
 
 
 
-distinct(Data)
-myvars <- c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "pstnrnv", "lat", "lon", "postnr", "afstandR", "Bevaringssag", "Lokalplan")
+Data <- distinct(Data)
+myvars <- c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "LP_ANV", "afstndR", "Bvrngss","DelLokalplan")
 Data_fin <- Data[myvars]
 saveRDS(Data_fin, "data.rds")
 
@@ -216,7 +313,7 @@ saveRDS(Data_fin, "data.rds")
 
 #####################################################
 #                                                   #
-# Indhentning af middel handelsvÅ¦rdi i nærområde   #
+# Indhentning af middel handelsværdi i nærområde    #
 #                                                   #
 #####################################################
 
