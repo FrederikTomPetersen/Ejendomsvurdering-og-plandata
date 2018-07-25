@@ -152,32 +152,48 @@ BoligSalg$Lokalplan  <- BoligSalg$Lokalplan %>% replace_na(0)
 
 
 
+#BaseR.Replace udkonkurerer nedenstående ifelse, men ejg vil stadig gerne finde ud af hvorfor den ikke virker.
+baseR.replace      <- function(x) { replace(x, is.na(x), 0) }
+BoligSalg$anvgen <- baseR.replace(BoligSalg$anvgen)
+
+
+
+
 #Oplysninger om anvendelse 
 #Kristian
 
-BoligSalg$LP_ANV <- 0
+# BoligSalg$LP_ANV <- 0
 
-if(BoligSalg$anvgen == 11){
-  BoligSalg$LP_ANV <- 1
-} else if(BoligSalg$anvgen == 21) {
-  BoligSalg$LP_ANV <- 2
-} else if(BoligSalg$anvgen == 31) {
-  BoligSalg$LP_ANV <- 3
-} else if(BoligSalg$anvgen == 41) {
-  BoligSalg$LP_ANV <- 4
-} else if(BoligSalg$anvgen == 51) {
-  BoligSalg$LP_ANV <- 5
-} else if(BoligSalg$anvgen == 61) {
-  BoligSalg$LP_ANV <- 6
-} else if(BoligSalg$anvgen == 71) {
-  BoligSalg$LP_ANV <- 7
-} else if(BoligSalg$anvgen == 81) {
-  BoligSalg$LP_ANV <- 8
-} else {
-  BoligSalg$LP_ANV <- 0
-}
+# if(BoligSalg$anvgen == 11){
+#   BoligSalg$LP_ANV <- 1;
+# } else if(BoligSalg$anvgen = 21) {
+#   BoligSalg$LP_ANV <- 2;
+# } else if(BoligSalg$anvgen = 31) {
+#   BoligSalg$LP_ANV <- 3;
+# } else if(BoligSalg$anvgen = 41) {
+#   BoligSalg$LP_ANV <- 4;
+# } else if(BoligSalg$anvgen = 51) {
+#   BoligSalg$LP_ANV <- 5;
+# } else if(BoligSalg$anvgen = 61) {
+#   BoligSalg$LP_ANV <- 6;
+# } else if(BoligSalg$anvgen = 71) {
+#   BoligSalg$LP_ANV <- 7;
+# } else if(BoligSalg$anvgen = 81) {
+#   BoligSalg$LP_ANV <- 8;
+# } else {
+#   BoligSalg$LP_ANV <- 0;
+# }
+# 
+# x <-  12
+# if(x < 11){
+#   print("HEJ") ;
+# } else if(x == 5) {
+#   print("HEJHEJ");
+# } else {
+#   print("Farvel");
+# }
 
-fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "LP_ANV")
+fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "anvgen")
 BoligSalg <- BoligSalg[fields]
 
 
@@ -244,7 +260,7 @@ BoligSalg$Bevaringssag  <- BoligSalg$Bevaringssag %>% replace_na(0)
 
 
 
-fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "LP_ANV", "afstandR", "Bevaringssag")
+fields <-  c("buysum", "m2", "date", "n_rooms", "build_year",  "height", "lat", "lon", "postnr", "floor",  "Lokalplan", "anvgen", "afstandR", "Bevaringssag")
 BoligSalg <- BoligSalg[fields]
 
 
@@ -273,7 +289,7 @@ BoligSalg <- sf::read_sf("bolig4.shp", crs = 25832)
 BoligSalg$DelLokalplan <- ifelse(BoligSalg$planid>0, 1, 0)
 BoligSalg$DelLokalplan  <- BoligSalg$planid %>% replace_na(0)
 
-fields <-  c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "LP_ANV", "afstndR", "Bvrngss","DelLokalplan")
+fields <-  c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "anvgn_x", "afstndR", "Bvrngss","DelLokalplan")
 BoligSalg <- BoligSalg[fields]
 
 
@@ -304,7 +320,7 @@ rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreative
 
 
 Data <- distinct(Data)
-myvars <- c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "LP_ANV", "afstndR", "Bvrngss","DelLokalplan")
+myvars <- c("buysum", "m2", "date", "n_rooms", "buld_yr",  "height", "lat", "lon", "postnr", "floor",  "Loklpln", "anvgen", "afstndR", "Bvrngss","DelLokalplan")
 Data_fin <- Data[myvars]
 saveRDS(Data_fin, "data.rds")
 
@@ -423,7 +439,7 @@ map1 <-  ggmap(ÅrhusBase, base_layer=ggplot(aes(x=lon,y=lat), data=Data_fin_1),
             ylim=c(attr(ÅrhusBase, "bb")$ll.lat, attr(ÅrhusBase, "bb")$ur.lat)) +
   guides(color = guide_colorbar(barwidth = 1,
                                 barheight = 10,
-                                title = "KÅ¸bssum i millioner",
+                                title = "Købssum i millioner",
                                 title.position = "top"))
 map1
 ggsave("Kort1.png", map1)
