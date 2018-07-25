@@ -52,7 +52,8 @@ Packages <- c("sf",               "RCurl",
               "xgboost",              "ggmap",
               "pROC",              "geosphere",
               "maptools",              "rgeos",
-              "ggmap",                "readr")
+              "ggmap",                "readr",
+              "caret")
 
 if(!require(Packages)){
   install.packages(Packages)
@@ -312,9 +313,8 @@ BoligSalg <- BoligSalg[fields]
 #####################################################
 
 
-saveRDS(BoligSalg, "data.rds")
-Data <- readRDS("Data.rds")
-rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreativeomrøder, Århus,slot, DSN_Kommuneplan_Ramme_751, ÅRHUS_DSN )
+save(BoligSalg, file="data.Rda")
+rm(Bevaringssag, Bolig_fra_CSV, Bolig_med_sag, BoligmedLP, BoligSalg, Rekreativeområder, Århus,slot, DSN_Kommuneplan_Ramme_751, ÅRHUS_DSN )
 
 
 
